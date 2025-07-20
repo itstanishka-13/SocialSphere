@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SocialSphere | Home Feed</title>
+   <link rel="stylesheet" href="shared.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #e3f2fd, #f8bbd0);
+      min-height: 100vh;
+    }
+
+    .navbar {
+      background: rgba(26, 115, 232, 0.9);
+      color: white;
+      padding: 16px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .navbar h2 {
+      font-weight: 600;
+    }
+
+    .nav-links a {
+      margin-left: 25px;
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s;
+    }
+
+    .nav-links a:hover {
+      color: #ffe0f0;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    .post {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 25px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+      transition: transform 0.2s;
+    }
+
+    .post:hover {
+      transform: scale(1.01);
+    }
+
+    .post img {
+      width: 100%;
+      max-height: 350px;
+      object-fit: cover;
+      border-radius: 15px;
+      margin-top: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .author {
+      font-weight: 600;
+      color: #1a73e8;
+      font-size: 16px;
+    }
+
+    .content {
+      margin-top: 10px;
+      font-size: 15px;
+      color: #333;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h2>SocialSphere</h2>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="newpost.html">New Post</a>
+      <a href="profile.html">My Profile</a>
+      <a href="settings.html">Settings</a>
+      <a href="notifications.html">🔔 Requests</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <h3 style="margin-bottom: 25px; color: #444;">🌐 Your Feed</h3>
+    <div id="feed"></div>
+  </div>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user) location.href = "login.html";
+
+    async function loadPosts() {
+      const response = await fetch("/posts");
+      const posts = await response.json();
+      const feed = document.getElementById("feed");
+      feed.innerHTML = "";
+
+      posts.reverse().forEach(post => {
+        feed.innerHTML += `
+          <div class="post" onclick="window.location.href='post.html?id=${post.id}'">
+            <div class="author">👤 User #${post.userId}</div>
+            ${post.image ? `<img src="${post.image}" alt="Post Image">` : ''}
+            <div class="content">${post.content}</div>
+          </div>
+        `;
+      });
+    }
+
+    function logout() {
+      localStorage.removeItem("user");
+      location.href = "login.html";
+    }
+
+    loadPosts();
+  </script>
+</body>
+</html>

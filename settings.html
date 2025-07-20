@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Settings | SocialSphere</title>
+  <link rel="stylesheet" href="shared.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #fdfbfb, #ebedee);
+    }
+
+    .navbar {
+      background-color: #1a73e8;
+      color: white;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-links a {
+      margin-left: 20px;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      background: rgba(255,255,255,0.9);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      backdrop-filter: blur(6px);
+    }
+
+    h2 {
+      text-align: center;
+      color: #1a237e;
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: 600;
+      margin-top: 15px;
+      display: block;
+      color: #333;
+    }
+
+    input[type="file"],
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      margin-top: 8px;
+      font-size: 15px;
+      resize: none;
+    }
+
+    .tag-suggestions {
+      margin-top: 8px;
+    }
+
+    .tag-suggestions button {
+      background-color: #ff80ab;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 5px 10px;
+      margin-right: 8px;
+      margin-bottom: 5px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .save-btn {
+      background-color: #1a73e8;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      font-weight: bold;
+      width: 100%;
+      font-size: 16px;
+      margin-top: 25px;
+      cursor: pointer;
+    }
+
+    .section {
+      margin-top: 30px;
+    }
+
+    .section h4 {
+      margin-bottom: 10px;
+      color: #1a237e;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 5px;
+    }
+
+    ul.block-list {
+      list-style: none;
+      padding-left: 0;
+      font-size: 14px;
+      color: #333;
+    }
+
+    ul.block-list li {
+      background: #f5f5f5;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h2>Settings</h2>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="newpost.html">New Post</a>
+      <a href="profile.html">My Profile</a>
+      <a href="notifications.html">🔔 Requests</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>Update Profile</h2>
+    <label for="profilePicInput">Profile Picture:</label>
+    <input type="file" id="profilePicInput" accept="image/*" />
+
+    <label for="bioInput">Bio:</label>
+    <textarea id="bioInput" rows="3" placeholder="Write a short bio..."></textarea>
+
+    <div class="tag-suggestions">
+      <button onclick="appendBio('🌸 Friendly')">🌸 Friendly</button>
+      <button onclick="appendBio('🎯 Ambitious')">🎯 Ambitious</button>
+      <button onclick="appendBio('🌍 Explorer')">🌍 Explorer</button>
+      <button onclick="appendBio('💡 Creative')">💡 Creative</button>
+      <button onclick="appendBio('✨ Dreamer')">✨ Dreamer</button>
+    </div>
+
+    <button class="save-btn" onclick="saveSettings()">💾 Save Changes</button>
+
+    <div class="section">
+      <h4>🔒 Privacy Settings</h4>
+      <label><input type="checkbox" disabled /> Make profile private (Coming Soon)</label>
+    </div>
+
+    <div class="section">
+      <h4>🚫 Blocked Users</h4>
+      <ul class="block-list" id="blockList"></ul>
+    </div>
+
+    <div class="section">
+      <h4>🪪 Account Info</h4>
+      <p><strong>Name:</strong> <span id="userName"></span></p>
+      <p><strong>Email:</strong> <span id="userEmail"></span></p>
+    </div>
+  </div>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user) location.href = "login.html";
+
+    document.getElementById("userName").innerText = user.name;
+    document.getElementById("userEmail").innerText = user.email;
+    document.getElementById("bioInput").value = user.bio || "";
+
+    function appendBio(tag) {
+      const input = document.getElementById("bioInput");
+      input.value += (input.value ? " " : "") + tag;
+    }
+
+    async function saveSettings() {
+      const bio = document.getElementById("bioInput").value;
+      const fileInput = document.getElementById("profilePicInput");
+      const imageFile = fileInput.files[0];
+
+      const formData = new FormData();
+      formData.append("userId", user.id);
+      formData.append("bio", bio);
+      if (imageFile) formData.append("profilePic", imageFile);
+
+      try {
+        const res = await fetch("/auth/update-profile", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+        if (res.ok && data.user) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+          alert("✅ Profile updated!");
+          location.href = "profile.html";
+        } else {
+          alert("❌ Failed to update: " + (data.message || "Unknown error"));
+        }
+      } catch (err) {
+        alert("❌ Server error. Try again later.");
+        console.error(err);
+      }
+    }
+
+    async function loadBlockList() {
+      const res = await fetch(`/auth/blocklist/${user.id}`);
+      const users = await res.json();
+      const list = document.getElementById("blockList");
+      list.innerHTML = users.length
+        ? users.map(u => `<li>${u.name}</li>`).join('')
+        : "<li>No blocked users</li>";
+    }
+
+    function logout() {
+      localStorage.removeItem("user");
+      location.href = "login.html";
+    }
+
+    loadBlockList();
+  </script>
+</body>
+</html>

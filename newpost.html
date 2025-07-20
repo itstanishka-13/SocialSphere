@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Create New Post | SocialSphere</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #fdfbfb, #ebedee);
+    }
+
+    .navbar {
+      background-color: #1a73e8;
+      color: white;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .navbar h2 {
+      margin: 0;
+      font-weight: 600;
+      font-size: 22px;
+    }
+
+    .nav-links a {
+      margin-left: 20px;
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 50px auto;
+      background: #ffffffde;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(5px);
+    }
+
+    h2 {
+      text-align: center;
+      color: #1a237e;
+      margin-bottom: 25px;
+    }
+
+    input[type="file"],
+    textarea {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  font-size: 16px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.6;
+  min-height: 120px;
+}
+
+    button.post-btn {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      display: block;
+      width: 100%;
+    }
+#previewImage {
+  width: 100%;
+  max-height: 400px;
+  object-fit: contain; /* ⬅ shows full image without cutting */
+  border-radius: 12px;
+  margin-bottom: 20px;
+  display: none;
+  background-color: #f0f0f0;
+  padding: 10px;
+   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+  </style>
+</head>
+<body>
+
+  <!-- 🔷 Navbar -->
+  <div class="navbar">
+    <h2>SocialSphere</h2>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="newpost.html">New Post</a>
+      <a href="profile.html">My Profile</a>
+      <a href="settings.html">Settings</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </div>
+  </div>
+
+  <!-- 📸 Create Post Section -->
+  <div class="container">
+    <h2>Create a New Post</h2>
+    <input type="file" id="imageInput" accept="image/*" />
+    <img id="previewImage" alt="Image Preview" />
+    
+    <textarea id="postContent" rows="4" placeholder="Write your caption..."></textarea>
+    <button class="post-btn" id="postBtn">Post</button>
+  </div>
+
+  <!-- ✅ Final JavaScript -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (!user) location.href = "login.html";
+
+      const postContent = document.getElementById("postContent");
+      const postBtn = document.getElementById("postBtn");
+      const imageInput = document.getElementById("imageInput");
+      const preview = document.getElementById("previewImage");
+
+      // ✅ Image Preview
+      imageInput.addEventListener("change", () => {
+        const file = imageInput.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = e => {
+            preview.src = e.target.result;
+            preview.style.display = "block";
+          };
+          reader.readAsDataURL(file);
+        } else {
+          preview.style.display = "none";
+        }
+      });
+
+      // ✅ Upload Post
+      postBtn.addEventListener("click", async () => {
+        const content = postContent.value.trim();
+        const image = imageInput.files[0];
+
+        if (!content) {
+          alert("Caption is required!");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("userId", user.id);
+        formData.append("content", content);
+        if (image) formData.append("image", image);
+
+        try {
+          const res = await fetch("/posts", {
+            method: "POST",
+            body: formData
+          });
+
+          const data = await res.json();
+          if (res.ok) {
+            alert("✅ Post uploaded successfully!");
+            location.href = "index.html";
+          } else {
+            console.error("❌ Upload failed:", data);
+            alert("❌ Failed: " + (data.message || "Unknown Error"));
+          }
+        } catch (err) {
+          console.error("❌ Server error:", err);
+          alert("❌ Server error! See console for details.");
+        }
+      });
+
+      // ✅ Logout
+      window.logout = function () {
+        localStorage.removeItem("user");
+        location.href = "login.html";
+      };
+    });
+  </script>
+</body>
+</html>

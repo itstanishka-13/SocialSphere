@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Profile | SocialSphere</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #e3f2fd, #fff);
+    }
+
+    .navbar {
+      background-color: #1a73e8;
+      color: white;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-links a {
+      margin-left: 20px;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: 40px auto;
+      padding: 30px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      backdrop-filter: blur(6px);
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .profile-header img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #1a73e8;
+    }
+
+    .info h2 { margin: 0; color: #1a73e8; }
+    .info p { margin: 4px 0; color: #555; }
+
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      margin: 20px 0;
+      font-size: 16px;
+    }
+
+    .stats span {
+      color: #e91e63;
+      font-weight: bold;
+    }
+
+    .post {
+      background-color: #f3f8ff;
+      border-left: 6px solid #ff80ab;
+      padding: 15px;
+      border-radius: 15px;
+      margin-top: 15px;
+      position: relative;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+    }
+
+    .post img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+
+    .post .content {
+      margin-top: 10px;
+      white-space: pre-wrap;
+    }
+
+    .delete-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #e91e63;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      padding: 5px 9px;
+      cursor: pointer;
+    }
+
+    .suggestion-user, .notification-user {
+      background: #f8f8f8;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .suggestion-user button, .notification-user button {
+      background-color: #ff69b4;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 5px 12px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #userPosts, #suggestList, #notificationList {
+      margin-top: 15px;
+    }
+
+    h3 {
+      color: #1a73e8;
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h2>My Profile</h2>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="newpost.html">New Post</a>
+      <a href="settings.html">Settings</a>
+      <a href="notifications.html">🔔 Requests</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="profile-header">
+      <img id="profilePic" src="" />
+      <div class="info">
+        <h2 id="userName">Name</h2>
+        <p id="userEmail">Email</p>
+        <p id="userBio">Bio goes here...</p>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div><span id="followers">0</span> Followers</div>
+      <div><span id="following">0</span> Following</div>
+    </div>
+    
+    <h3>👥 People You May Know</h3>
+    <div id="suggestList"></div>
+  </div>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user) location.href = "login.html";
+
+    document.getElementById("userName").innerText = user.name;
+    document.getElementById("userEmail").innerText = user.email;
+    document.getElementById("profilePic").src = user.profilePic || "https://via.placeholder.com/100";
+    document.getElementById("userBio").innerText = user.bio || "No bio set yet";
+
+    async function loadProfile() {
+      const res = await fetch(`/users/${user.id}`);
+      const data = await res.json();
+      document.getElementById('followers').innerText = data.followers.length;
+      document.getElementById('following').innerText = data.following.length;
+
+      const postsDiv = document.getElementById("userPosts");
+      postsDiv.innerHTML = "";
+      data.posts.reverse().forEach(p => {
+        postsDiv.innerHTML += `
+          <div class="post">
+            ${p.image ? `<img src="${p.image}">` : ""}
+            <div class="content">${p.content}</div>
+            <button class="delete-btn" onclick="deletePost(${p.id})">🗑️</button>
+          </div>
+        `;
+      });
+
+      loadSuggestions(data.following);
+    }
+
+    async function deletePost(id) {
+      const confirmed = confirm("Are you sure you want to delete this post?");
+      if (!confirmed) return;
+      await fetch(`/posts/${id}`, { method: "DELETE" });
+      loadProfile();
+    }
+
+    async function loadSuggestions(currentFollowing) {
+      const res = await fetch('/auth/all');
+      const allUsers = await res.json();
+
+      const suggestions = allUsers.filter(u =>
+        u.id !== user.id && !currentFollowing.includes(u.id)
+      );
+
+      // ✅ Add fake suggestions if needed
+      if (suggestions.length < 3) {
+        suggestions.push(
+          { id: 9991, name: "Foodie King 🍔" },
+          { id: 9992, name: "Travel Freak 🧳" },
+          { id: 9993, name: "Art Queen 🎨" }
+        );
+      }
+
+      const suggestList = document.getElementById("suggestList");
+      suggestList.innerHTML = "";
+
+      suggestions.slice(0, 5).forEach(u => {
+        suggestList.innerHTML += `
+          <div class="suggestion-user">
+            <span>${u.name}</span>
+            ${
+              u.id < 9990
+                ? `<button onclick="sendFollowRequest(${u.id})">Follow</button>`
+                : `<button disabled style="opacity: 0.6;">Suggested</button>`
+            }
+          </div>
+        `;
+      });
+    }
+
+    async function sendFollowRequest(id) {
+      const list = document.getElementById("notificationList");
+
+      const res = await fetch(`/users/${id}/request`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ fromId: user.id })
+});
+
+      if (res.ok) alert("Request sent!");
+      else alert("Failed to send request.");
+    }
+
+    function logout() {
+      localStorage.removeItem("user");
+      location.href = "login.html";
+    }
+
+    loadProfile();
+  </script>
+</body>
+</html>

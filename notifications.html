@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Notifications | SocialSphere</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #e3f2fd, #fff);
+    }
+
+    .navbar {
+      background-color: #1a73e8;
+      color: white;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-links a {
+      margin-left: 20px;
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      color: #1a73e8;
+      margin-bottom: 20px;
+    }
+
+    .request {
+      background: #f3f8ff;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .request button {
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h2>Follow Requests</h2>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="profile.html">Profile</a>
+      <a href="settings.html">Settings</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>Pending Requests</h2>
+    <div id="requests"></div>
+  </div>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user) location.href = "login.html";
+
+    async function loadRequests() {
+      const res = await fetch(`/users/${user.id}`);
+      const data = await res.json();
+      const requests = data.followRequests || [];
+
+      const reqDiv = document.getElementById("requests");
+      if (requests.length === 0) {
+        reqDiv.innerHTML = "<p>No new requests.</p>";
+        return;
+      }
+
+      requests.forEach(async id => {
+        const userRes = await fetch(`/users/${id}`);
+        const fromUser = await userRes.json();
+
+        reqDiv.innerHTML += `
+          <div class="request">
+            <span>${fromUser.name} wants to follow you</span>
+            <button onclick="acceptRequest(${fromUser.id})">Accept</button>
+          </div>
+        `;
+      });
+    }
+
+    async function acceptRequest(fromId) {
+      const res = await fetch(`/users/${user.id}/accept`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ followerId: fromId })
+      });
+
+      if (res.ok) {
+        alert("Request accepted!");
+        location.reload();
+      } else {
+        alert("Failed to accept!");
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("user");
+      location.href = "login.html";
+    }
+
+    loadRequests();
+  </script>
+</body>
+</html>

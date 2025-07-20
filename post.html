@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SocialSphere | Post</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom right, #e1f5fe, #ffe1f0);
+      color: #333;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark {
+      background: #121212;
+      color: #e0e0e0;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      background-color: white;
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      transition: background-color 0.3s;
+    }
+
+    body.dark .container {
+      background-color: #1e1e1e;
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #1a73e8;
+      text-align: center;
+    }
+
+    .post img {
+      width: 100%;
+      height: auto;
+      border-radius: 15px;
+      margin-bottom: 15px;
+    }
+
+    .caption {
+      font-size: 16px;
+      margin-bottom: 10px;
+      white-space: pre-wrap;
+    }
+
+    .likes {
+      font-weight: bold;
+      color: #e91e63;
+      margin: 10px 0;
+    }
+
+    .comment-box {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .comment-box input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
+
+    .comment-box button {
+      padding: 10px 15px;
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .comment-list {
+      margin-top: 20px;
+    }
+
+    .comment {
+      background-color: #f1f8ff;
+      padding: 10px;
+      border-left: 5px solid #90caf9;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    .back {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .back a {
+      text-decoration: none;
+      color: #1a73e8;
+      font-weight: bold;
+    }
+
+    .author {
+      font-weight: bold;
+      color: #1a73e8;
+    }
+
+    .btn-follow, .btn-delete {
+      padding: 6px 12px;
+      background-color: #ff69b4;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-delete {
+      background-color: #e53935;
+      margin-left: 10px;
+    }
+
+    .btn-follow:hover {
+      background-color: #f50057;
+    }
+
+    .dark-toggle {
+      position: fixed;
+      top: 15px;
+      right: 20px;
+      background: #333;
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 14px;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dark-toggle" onclick="toggleDarkMode()">🌓 Toggle Theme</div>
+
+  <div class="container">
+    <h2>Post Details</h2>
+
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="author" id="authorInfo">Loading...</div>
+      <div>
+        <button id="followBtn" class="btn-follow" onclick="followUser()" style="display: none;">Follow</button>
+        <button id="unfollowBtn" class="btn-follow" onclick="unfollowUser()" style="display: none;">Unfollow</button>
+        <button id="deleteBtn" class="btn-delete" onclick="deletePost()" style="display: none;">🗑️ Delete</button>
+      </div>
+    </div>
+
+    <div class="post" id="postContainer"></div>
+
+    <div class="likes" id="likeCount"></div>
+    <button onclick="likePost()">❤️ Like</button>
+
+    <div class="comment-box">
+      <input type="text" id="commentInput" placeholder="Add a comment..." />
+      <button onclick="addComment()">Comment</button>
+    </div>
+
+    <div><strong>💬 <span id="commentCount">0</span> Comments</strong></div>
+    <div class="comment-list" id="comments"></div>
+
+    <div class="back">
+      <a href="index.html">← Back to Feed</a>
+    </div>
+  </div>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user) window.location.href = "login.html";
+
+    const postId = new URLSearchParams(window.location.search).get("id");
+    let currentPost = null;
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+    }
+
+    async function fetchPost() {
+      const res = await fetch(`/posts`);
+      const data = await res.json();
+      currentPost = data.find(p => p.id === parseInt(postId));
+      if (!currentPost) return alert("Post not found!");
+
+      const container = document.getElementById("postContainer");
+      container.innerHTML = `
+        ${currentPost.image ? `<img src="${currentPost.image}" alt="Post Image">` : ""}
+        <div class="caption">${currentPost.content}</div>
+      `;
+
+      const authorInfo = document.getElementById("authorInfo");
+      const followBtn = document.getElementById("followBtn");
+      const unfollowBtn = document.getElementById("unfollowBtn");
+      const deleteBtn = document.getElementById("deleteBtn");
+
+      const postOwnerId = currentPost.userId;
+      authorInfo.innerText = `Posted by User #${postOwnerId}`;
+
+      if (postOwnerId === user.id) {
+        deleteBtn.style.display = "inline-block";
+      } else {
+        const resUser = await fetch(`/users/${user.id}`);
+        const currentUserData = await resUser.json();
+        const isFollowing = currentUserData.following.includes(postOwnerId);
+
+        followBtn.style.display = isFollowing ? "none" : "inline-block";
+        unfollowBtn.style.display = isFollowing ? "inline-block" : "none";
+      }
+
+      document.getElementById("likeCount").innerText = `${currentPost.likes.length} ❤️ likes`;
+      loadComments();
+    }
+
+    async function followUser() {
+      const postOwnerId = currentPost.userId;
+      await fetch(`/users/${postOwnerId}/follow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ followerId: user.id })
+      });
+      document.getElementById("followBtn").style.display = "none";
+      document.getElementById("unfollowBtn").style.display = "inline-block";
+    }
+
+    async function unfollowUser() {
+      const postOwnerId = currentPost.userId;
+      await fetch(`/users/${postOwnerId}/unfollow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ followerId: user.id })
+      });
+      document.getElementById("unfollowBtn").style.display = "none";
+      document.getElementById("followBtn").style.display = "inline-block";
+    }
+
+    async function likePost() {
+      const res = await fetch(`/posts/${postId}/like`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        currentPost.likes.push(user.id);
+        document.getElementById("likeCount").innerText = `${currentPost.likes.length} ❤️ likes`;
+      } else {
+        alert(data.message);
+      }
+    }
+
+    async function addComment() {
+      const text = document.getElementById("commentInput").value;
+      if (!text.trim()) return;
+
+      await fetch(`/posts/${postId}/comment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, text })
+      });
+
+      document.getElementById("commentInput").value = "";
+      loadComments();
+    }
+
+    function loadComments() {
+      const commentsDiv = document.getElementById("comments");
+      commentsDiv.innerHTML = "";
+      document.getElementById("commentCount").innerText = currentPost.comments.length;
+      currentPost.comments.forEach(c => {
+        commentsDiv.innerHTML += `
+          <div class="comment"><strong>User #${c.userId}:</strong> ${c.text}</div>
+        `;
+      });
+    }
+
+    async function deletePost() {
+      const confirmed = confirm("Are you sure you want to delete this post?");
+      if (!confirmed) return;
+
+      await fetch(`/posts/${postId}`, { method: "DELETE" });
+      alert("Post deleted!");
+      window.location.href = "index.html";
+    }
+
+    fetchPost();
+  </script>
+</body>
+</html>
